@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from services.data_loader import load_metadata, get_book_text
-from services.preprocess import clean_text, vectorize_texts
+from sklearn.feature_extraction.text import TfidfVectorizer
+from services.data_loader import load_metadata
 
 class BookRecommender:
     def __init__(self):
@@ -11,18 +11,28 @@ class BookRecommender:
         self.authors = self.metadata['author'].tolist()
         self.subjects = self.metadata['subjects'].tolist()
         self.genres = self.metadata['genre'].tolist()
-        self.book_texts = [clean_text(get_book_text(title)) for title in self.titles]
-        self.tfidf_matrix, self.vectorizer = vectorize_texts(self.book_texts)
+        
+        # Create combined text for TF-IDF from metadata
+        self.combined_texts = []
+        for i in range(len(self.metadata)):
+            combined = f"{self.titles[i]} {self.authors[i]} {self.subjects[i]} {self.genres[i]}"
+            self.combined_texts.append(combined)
+        
+        # Vectorize using combined metadata
+        self.vectorizer = TfidfVectorizer(stop_words='english', max_features=5000)
+        self.tfidf_matrix = self.vectorizer.fit_transform(self.combined_texts)
 
     def recommend_books(self, title: str, n: int = 3):
         # Partial title match
         matches = self.metadata[self.metadata['title'].str.contains(title, case=False, na=False)]
         if matches.empty:
             return []
+        
         idx = matches.index[0]
         query_vec = self.tfidf_matrix[idx]
         cosine_sim = cosine_similarity(query_vec, self.tfidf_matrix).flatten()
         sim_indices = cosine_sim.argsort()[-(n+1):][::-1]
+        
         recommendations = []
         for i in sim_indices:
             if i != idx:
