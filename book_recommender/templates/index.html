@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Book Recommender</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>Book Recommender</h1>
+    <form id="recommend-form">
+        <input type="text" id="title" name="title" placeholder="Enter book title">
+        <button type="submit">Recommend</button>
+    </form>
+    <form id="author-form">
+        <input type="text" id="author" name="author" placeholder="Enter author name">
+        <button type="submit">Show Books</button>
+    </form>
+    <div id="results"></div>
+    <script>
+        document.getElementById('recommend-form').onsubmit = async function(e) {
+            e.preventDefault();
+            const title = document.getElementById('title').value;
+            const res = await fetch('/recommend', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({title: title, n: 3})
+            });
+            const data = await res.json();
+            let html = '<h2>Recommendations</h2><ul>';
+            data.forEach(book => {
+                html += `<li><b>${book.title}</b> by ${book.author} <br>Subjects: ${book.subjects} | Genre: ${book.genre}</li>`;
+            });
+            html += '</ul>';
+            document.getElementById('results').innerHTML = html;
+        };
+        document.getElementById('author-form').onsubmit = async function(e) {
+            e.preventDefault();
+            const author = document.getElementById('author').value;
+            const res = await fetch('/author', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({author: author})
+            });
+            const data = await res.json();
+            let html = `<h2>Books by ${author}</h2><ul>`;
+            data.forEach(book => {
+                html += `<li><b>${book.title}</b> (${book.genre})<br>Subjects: ${book.subjects}</li>`;
+            });
+            html += '</ul>';
+            document.getElementById('results').innerHTML = html;
+        };
+    </script>
+</body>
+</html>

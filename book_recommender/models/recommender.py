@@ -1,0 +1,49 @@
+import pandas as pd
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from services.data_loader import load_metadata, get_book_text
+from services.preprocess import clean_text, vectorize_texts
+
+class BookRecommender:
+    def __init__(self):
+        self.metadata = load_metadata()
+        self.titles = self.metadata['title'].tolist()
+        self.authors = self.metadata['author'].tolist()
+        self.subjects = self.metadata['subjects'].tolist()
+        self.genres = self.metadata['genre'].tolist()
+        self.book_texts = [clean_text(get_book_text(title)) for title in self.titles]
+        self.tfidf_matrix, self.vectorizer = vectorize_texts(self.book_texts)
+
+    def recommend_books(self, title: str, n: int = 3):
+        # Partial title match
+        matches = self.metadata[self.metadata['title'].str.contains(title, case=False, na=False)]
+        if matches.empty:
+            return []
+        idx = matches.index[0]
+        query_vec = self.tfidf_matrix[idx]
+        cosine_sim = cosine_similarity(query_vec, self.tfidf_matrix).flatten()
+        sim_indices = cosine_sim.argsort()[-(n+1):][::-1]
+        recommendations = []
+        for i in sim_indices:
+            if i != idx:
+                recommendations.append({
+                    'title': self.titles[i],
+                    'author': self.authors[i],
+                    'subjects': self.subjects[i],
+                    'genre': self.genres[i]
+                })
+                if len(recommendations) == n:
+                    break
+        return recommendations
+
+    def books_by_author(self, author: str):
+        matches = self.metadata[self.metadata['author'].str.contains(author, case=False, na=False)]
+        return matches[['title', 'author', 'subjects', 'genre']].to_dict(orient='records')
+
+recommender = BookRecommender()
+
+def recommend_books(title: str, n: int = 3):
+    return recommender.recommend_books(title, n)
+
+def books_by_author(author: str):
+    return recommender.books_by_author(author)
