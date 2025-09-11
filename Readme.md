@@ -7,4 +7,4 @@ Please credit Project Gutenberg when using or sharing this app and do not use th
 
 ---
 
-Generate all the boilerplate code for each file so I can run `flask run` and test recommendations locally.
+
